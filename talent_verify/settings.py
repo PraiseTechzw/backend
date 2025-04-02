@@ -183,6 +183,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://backend-8i3l.onrender.com',
     'https://talent-test.vercel.app',
     'http://localhost:3000',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
 ]
 CSRF_COOKIE_DOMAIN = None
 CSRF_COOKIE_SECURE = True
@@ -197,8 +199,7 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 else:
-    # In development, allow all origins
-    CSRF_TRUSTED_ORIGINS = ['*']
+    # In development, use localhost origins
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
 
