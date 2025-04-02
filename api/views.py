@@ -199,32 +199,40 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            # Create token for the new user
-            token, created = Token.objects.get_or_create(user=user)
+        try:
+            serializer = RegisterSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.save()
+                # Create token for the new user
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({
+                    'token': token.key,
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name
+                    }
+                }, status=status.HTTP_201_CREATED)
+            
+            # Return detailed error messages
+            error_messages = {}
+            for field, errors in serializer.errors.items():
+                if isinstance(errors, list):
+                    error_messages[field] = errors[0]
+                else:
+                    error_messages[field] = str(errors)
             return Response({
-                'token': token.key,
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name
-                }
-            }, status=status.HTTP_201_CREATED)
-        # Return detailed error messages
-        error_messages = {}
-        for field, errors in serializer.errors.items():
-            if isinstance(errors, list):
-                error_messages[field] = errors[0]
-            else:
-                error_messages[field] = str(errors)
-        return Response({
-            'detail': 'Registration failed',
-            'errors': error_messages
-        }, status=status.HTTP_400_BAD_REQUEST)
+                'detail': 'Registration failed',
+                'errors': error_messages
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({
+                'detail': 'Registration failed',
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SearchView(APIView):

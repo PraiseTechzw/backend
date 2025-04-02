@@ -83,25 +83,31 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
     
     def create(self, validated_data):
-        validated_data.pop('password2')
-        user = User.objects.create(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name']
-        )
-        user.set_password(validated_data['password'])
-        user.save()
+        try:
+            validated_data.pop('password2')
+            user = User.objects.create(
+                username=validated_data['username'],
+                email=validated_data['email'],
+                first_name=validated_data['first_name'],
+                last_name=validated_data['last_name']
+            )
+            user.set_password(validated_data['password'])
+            user.save()
 
-        # Create UserProfile with admin role for the first user
-        # For subsequent users, set as company_manager
-        is_first_user = User.objects.count() == 1
-        UserProfile.objects.create(
-            user=user,
-            role='admin' if is_first_user else 'company_manager'
-        )
+            # Create UserProfile with admin role for the first user
+            # For subsequent users, set as company_manager
+            is_first_user = User.objects.count() == 1
+            UserProfile.objects.create(
+                user=user,
+                role='admin' if is_first_user else 'company_manager',
+                company=None  # Company will be set later when user creates or joins a company
+            )
 
-        return user
+            return user
+        except Exception as e:
+            raise serializers.ValidationError({
+                'detail': str(e)
+            })
 
 
 class SearchSerializer(serializers.Serializer):
