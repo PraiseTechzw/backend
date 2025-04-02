@@ -156,7 +156,7 @@ SIMPLE_JWT = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,https://talent-test.vercel.app').split(',')
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,https://talent-test.vercel.app,https://backend-8i3l.onrender.com').split(',')
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -178,6 +178,16 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+# CSRF settings
+CSRF_TRUSTED_ORIGINS = [
+    'https://backend-8i3l.onrender.com',
+    'https://talent-test.vercel.app',
+    'http://localhost:3000',
+]
+CSRF_COOKIE_DOMAIN = None
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+
 # Security settings
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
@@ -186,4 +196,9 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+else:
+    # In development, allow all origins
+    CSRF_TRUSTED_ORIGINS = ['*']
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
 
