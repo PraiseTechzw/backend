@@ -18,6 +18,7 @@ import csv
 import io
 import pandas as pd
 from rest_framework.authtoken.models import Token
+from rest_framework import permissions
 
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all()
@@ -92,6 +93,13 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'employee_id', 'role']
     ordering_fields = ['name', 'start_date', 'end_date']
 
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # For write operations, check if user is admin
+            if self.request.user.is_superuser:
+                return [permissions.IsAuthenticated()]
+        return super().get_permissions()
+
     @action(detail=False, methods=['post'])
     def bulk_upload(self, request):
         if 'file' not in request.FILES:
@@ -105,28 +113,17 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             employees = []
             
             for row in reader:
-                # Get company by name or ID
-                try:
-                    if 'company_id' in row:
-                        company = Company.objects.get(id=row['company_id'])
-                    else:
-                        company = Company.objects.get(name=row['company'])
-                    
-                    # Process CSV row into Employee object
-                    employees.append(Employee(
-                        name=row['name'],
-                        employee_id=row['employee_id'],
-                        company=company,
-                        department=row['department'],
-                        role=row['role'],
-                        start_date=row['start_date'],
-                        end_date=row['end_date'] if row['end_date'] else None,
-                        duties=row['duties']
-                    ))
-                except Company.DoesNotExist:
-                    return Response({
-                        'error': f'Company not found: {row.get("company", row.get("company_id"))}'
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                # Process CSV row into Employee object
+                employees.append(Employee(
+                    name=row['name'],
+                    employee_id=row['employee_id'],
+                    company=row['company'],
+                    department=row['department'],
+                    role=row['role'],
+                    start_date=row['start_date'],
+                    end_date=row['end_date'] if row['end_date'] else None,
+                    duties=row['duties']
+                ))
             
             # Bulk create employees
             Employee.objects.bulk_create(employees)
@@ -138,26 +135,16 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             employees = []
             
             for _, row in df.iterrows():
-                try:
-                    if 'company_id' in df.columns:
-                        company = Company.objects.get(id=row['company_id'])
-                    else:
-                        company = Company.objects.get(name=row['company'])
-                    
-                    employees.append(Employee(
-                        name=row['name'],
-                        employee_id=row['employee_id'],
-                        company=company,
-                        department=row['department'],
-                        role=row['role'],
-                        start_date=row['start_date'],
-                        end_date=row['end_date'] if pd.notna(row['end_date']) else None,
-                        duties=row['duties']
-                    ))
-                except Company.DoesNotExist:
-                    return Response({
-                        'error': f'Company not found: {row.get("company", row.get("company_id"))}'
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                employees.append(Employee(
+                    name=row['name'],
+                    employee_id=row['employee_id'],
+                    company=row['company'],
+                    department=row['department'],
+                    role=row['role'],
+                    start_date=row['start_date'],
+                    end_date=row['end_date'] if pd.notna(row['end_date']) else None,
+                    duties=row['duties']
+                ))
             
             # Bulk create employees
             Employee.objects.bulk_create(employees)

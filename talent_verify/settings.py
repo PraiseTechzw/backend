@@ -198,6 +198,55 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    
+    # Security Headers
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # Permissions Policy
+    PERMISSIONS_POLICY = {
+        'accelerometer': [],
+        'ambient-light-sensor': [],
+        'autoplay': [],
+        'battery': [],
+        'camera': [],
+        'display-capture': [],
+        'document-domain': [],
+        'encrypted-media': [],
+        'execution-while-not-rendered': [],
+        'execution-while-out-of-viewport': [],
+        'fullscreen': [],
+        'geolocation': [],
+        'gyroscope': [],
+        'keyboard-map': [],
+        'magnetometer': [],
+        'microphone': [],
+        'midi': [],
+        'navigation-override': [],
+        'payment': [],
+        'picture-in-picture': [],
+        'publickey-credentials-get': [],
+        'screen-wake-lock': [],
+        'sync-xhr': [],
+        'usb': [],
+        'web-share': [],
+        'xr-spatial-tracking': [],
+        'clipboard-read': [],
+        'clipboard-write': [],
+        'gamepad': [],
+        'speaker-selection': [],
+        'conversion-measurement': [],
+        'focus-without-user-activation': [],
+        'hid': [],
+        'idle-detection': [],
+        'interest-cohort': [],
+        'serial': [],
+        'sync-script': [],
+        'trust-token-redemption': [],
+        'window-placement': [],
+        'vertical-scroll': [],
+    }
 else:
     # In development, use localhost origins
     CSRF_COOKIE_SECURE = False
