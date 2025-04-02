@@ -200,6 +200,9 @@ class RegisterView(APIView):
 
     def post(self, request):
         try:
+            # Log the incoming request data
+            print("Registration request data:", request.data)
+            
             serializer = RegisterSerializer(data=request.data)
             if serializer.is_valid():
                 try:
@@ -218,6 +221,7 @@ class RegisterView(APIView):
                             }
                         }, status=status.HTTP_201_CREATED)
                     except Exception as token_error:
+                        print("Token creation error:", str(token_error))
                         # If token creation fails, still return user data
                         return Response({
                             'user': {
@@ -230,10 +234,14 @@ class RegisterView(APIView):
                             'error': 'Token creation failed but user was created successfully'
                         }, status=status.HTTP_201_CREATED)
                 except Exception as save_error:
+                    print("User creation error:", str(save_error))
                     return Response({
                         'detail': 'User creation failed',
                         'error': str(save_error)
                     }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Log validation errors
+            print("Validation errors:", serializer.errors)
             
             # Return detailed error messages
             error_messages = {}
@@ -248,6 +256,7 @@ class RegisterView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
             
         except Exception as e:
+            print("Unexpected error:", str(e))
             return Response({
                 'detail': 'Registration failed',
                 'error': str(e)
