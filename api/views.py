@@ -267,50 +267,70 @@ class SearchView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        serializer = SearchSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
-        
-        # Build query based on search parameters
-        query = Q()
-        
-        if 'name' in serializer.validated_data:
-            query &= Q(name__icontains=serializer.validated_data['name'])
-        
-        if 'employee_id' in serializer.validated_data:
-            query &= Q(employee_id__icontains=serializer.validated_data['employee_id'])
-        
-        if 'company' in serializer.validated_data:
-            query &= Q(company__name__icontains=serializer.validated_data['company'])
-        
-        if 'department' in serializer.validated_data:
-            query &= Q(department__icontains=serializer.validated_data['department'])
-        
-        if 'role' in serializer.validated_data:
-            query &= Q(role__icontains=serializer.validated_data['role'])
-        
-        if 'start_date_from' in serializer.validated_data:
-            query &= Q(start_date__gte=serializer.validated_data['start_date_from'])
-        
-        if 'start_date_to' in serializer.validated_data:
-            query &= Q(start_date__lte=serializer.validated_data['start_date_to'])
-        
-        if 'is_active' in serializer.validated_data:
-            if serializer.validated_data['is_active']:
-                query &= Q(end_date__isnull=True)
-            else:
-                query &= Q(end_date__isnull=False)
-        
-        # Execute query
-        employees = Employee.objects.filter(query)
-        
-        # Paginate results
-        page = self.paginate_queryset(employees)
-        if page is not None:
-            serializer = EmployeeSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = EmployeeSerializer(employees, many=True)
-        return Response(serializer.data)
+        try:
+            serializer = SearchSerializer(data=request.query_params)
+            serializer.is_valid(raise_exception=True)
+            
+            # Build query based on search parameters
+            query = Q()
+            
+            # Text-based searches with case-insensitive partial matching
+            if 'name' in serializer.validated_data:
+                query &= Q(name__icontains=serializer.validated_data['name'])
+            
+            if 'employee_id' in serializer.validated_data:
+                query &= Q(employee_id__icontains=serializer.validated_data['employee_id'])
+            
+            if 'company' in serializer.validated_data:
+                query &= Q(company__name__icontains=serializer.validated_data['company'])
+            
+            if 'department' in serializer.validated_data:
+                query &= Q(department__icontains=serializer.validated_data['department'])
+            
+            if 'role' in serializer.validated_data:
+                query &= Q(role__icontains=serializer.validated_data['role'])
+            
+            # Date range search
+            if 'start_date_from' in serializer.validated_data:
+                query &= Q(start_date__gte=serializer.validated_data['start_date_from'])
+            
+            if 'start_date_to' in serializer.validated_data:
+                query &= Q(start_date__lte=serializer.validated_data['start_date_to'])
+            
+            # Active/Inactive status search
+            if 'is_active' in serializer.validated_data:
+                if serializer.validated_data['is_active']:
+                    query &= Q(end_date__isnull=True)
+                else:
+                    query &= Q(end_date__isnull=False)
+            
+            # Execute query with select_related to optimize database queries
+            employees = Employee.objects.select_related('company').filter(query)
+            
+            # Add total count to response
+            total_count = employees.count()
+            
+            # Paginate results
+            page = self.paginate_queryset(employees)
+            if page is not None:
+                serializer = EmployeeSerializer(page, many=True)
+                response_data = self.get_paginated_response(serializer.data)
+                # Add total count to paginated response
+                response_data.data['total_count'] = total_count
+                return response_data
+            
+            # If no pagination, return all results with total count
+            serializer = EmployeeSerializer(employees, many=True)
+            return Response({
+                'results': serializer.data,
+                'total_count': total_count
+            })
+            
+        except Exception as e:
+            return Response({
+                'detail': 'Search failed',
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     @property
     def paginator(self):
@@ -320,6 +340,8 @@ class SearchView(APIView):
         if not hasattr(self, '_paginator'):
             from rest_framework.pagination import PageNumberPagination
             self._paginator = PageNumberPagination()
+            # Set page size
+            self._paginator.page_size = 10
         return self._paginator
     
     def paginate_queryset(self, queryset):
